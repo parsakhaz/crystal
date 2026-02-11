@@ -144,18 +144,10 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
               foozol
             </h3>
             <p className="text-sm text-text-secondary">
-              Multi-Session Claude Code Manager
+              Terminal-First AI Code Assistant Manager
             </p>
             <p className="text-xs text-text-tertiary">
-              Created by{' '}
-              <a
-                href="https://stravu.com/?utm_source=foozol&utm_medium=OS&utm_campaign=foozol&utm_id=1"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-interactive hover:underline"
-              >
-                Stravu
-              </a>
+              By Parsa Khazaeepoul
             </p>
           </div>
 

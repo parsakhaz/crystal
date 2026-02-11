@@ -5,86 +5,29 @@
 </div>
 
 <div align="center">
-
-[![Build](https://github.com/parsakhaz/foozol/actions/workflows/build.yml/badge.svg)](https://github.com/parsakhaz/foozol/actions/workflows/build.yml)
-[![Quality](https://github.com/parsakhaz/foozol/actions/workflows/quality.yml/badge.svg)](https://github.com/parsakhaz/foozol/actions/workflows/quality.yml)
-
-</div>
-
-<div align="center">
-  <strong>Terminal-first AI code assistant manager with opinionated UI and Windows support.</strong>
+  <strong>Terminal-first AI code assistant manager with opinionated UI and full Windows support.</strong>
 </div>
 
 <br>
-<br>
-
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/45ca7166-e69a-4ed2-8ef5-ef83dc52ffd6" alt="Run one or more sessions with Claude Code, Codex, or both" width="400"/>
-  <p><em>Run one or more sessions with Claude Code, Codex, or both</em></p>
-</div>
-
-<div align="center">
-  <table>
-    <tr>
-      <td align="center" width="50%">
-        <img src="https://github.com/user-attachments/assets/e180691e-aaa3-4171-bdae-3b0459dcc495" alt="Rich output for your agents" width="400"/>
-        <p><em>Rich output for your agents</em></p>
-      </td>
-      <td align="center" width="50%">
-        <img src="https://github.com/user-attachments/assets/1f64ac92-9158-4e83-997e-6650a9bc9072" alt="Run your code and test before merging" width="400"/>
-        <p><em>Run your code and test before merging</em></p>
-      </td>
-    </tr>
-  </table>
-</div>
-
-<div align="center" style="max-width: 600px; margin: 0 auto;">
-
-https://github.com/user-attachments/assets/5ca66e5b-8d05-4570-8417-5e8dcd7726ef
-
-</div>
 
 ---
 
-## The Crystal Workflow
+## Features
+
+- **Terminal-First Workflow**: Quick access to Terminal (Claude) and Terminal (Codex) for direct CLI interaction
+- **Multi-Session Support**: Run multiple Claude Code or Codex instances simultaneously
+- **Git Worktree Isolation**: Each session operates in its own isolated git worktree
+- **Windows Support**: Full Windows build support with native modules
+- **Opinionated UI**: Streamlined interface prioritizing terminal-based workflows
+
+---
+
+## The foozol Workflow
 
 1. Create sessions from prompts, each in an isolated git worktree
-2. Iterate with your AI assistant (Claude Code or Codex) inside your sessions. Each iteration will make a commit so you can always go back.
+2. Iterate with your AI assistant (Claude Code or Codex) inside your sessions
 3. Review the diff changes and make manual edits as needed
-4. Squash your commits together with a new message and merge to your main branch.
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **For Claude Code**: Claude Code installed and logged in or API key provided
-- **For Codex**: Codex installed (via npm: `@openai/codex` or Homebrew) with ChatGPT account or API key
-- Git installed
-- Git repository (Crystal will initialize one if needed)
-
-### 1. Create a Project
-Create a new project if you haven't already. This can be an empty folder or an existing git repository. Crystal will initialize git if needed.
-
-### 2. Create Sessions from a Prompt
-For any feature you're working on, create one or multiple new sessions:
-- Each session will be an isolated git worktree
-
-### 3. Monitor and Test Your Changes
-As sessions complete:
-- **Configure run scripts** in project settings to test your application without leaving Crystal
-- **Use the diff viewer** to review all changes and make manual edits as needed
-- **Continue conversations** with your AI assistant if you need additional changes
-
-### 4. Finalize Your Changes
-When everything looks good:
-- Click **"Rebase to main"** to squash all commits with a new message and rebase them to your main branch
-- This creates a clean commit history on your main branch
-
-### Git Operations
-- **Rebase from main**: Pull latest changes from main into your worktree
-- **Squash and rebase to main**: Combine all commits and rebase onto main
-- Always preview commands with tooltips before executing
+4. Squash your commits together with a new message and merge to your main branch
 
 ---
 
@@ -92,19 +35,17 @@ When everything looks good:
 
 ### Download Pre-built Binaries
 
-- **macOS**: Download `Crystal-{version}.dmg` from the [latest release](https://github.com/stravu/crystal/releases/latest)
-  - Open the DMG file and drag Crystal to your Applications folder
-  - On first launch, you may need to right-click and select "Open" due to macOS security settings
+Download from the [latest release](https://github.com/parsakhaz/foozol/releases/latest):
 
-- **Windows**: Windows is supported but requires building from source
-  - Follow the "Building from Source" instructions below
-  - Requires Visual Studio 2022 with Spectre-mitigated libraries
-  - Official installer coming in future releases
+- **Windows**: `foozol-{version}-Windows-x64.exe` or `foozol-{version}-Windows-arm64.exe`
+- **macOS**: `foozol-{version}.dmg`
+- **Linux**: `foozol-{version}.AppImage`
 
-### Homebrew
-```bash
-brew install --cask stravu-crystal
-```
+### Prerequisites
+
+- **For Claude Code**: Claude Code installed and logged in or API key provided
+- **For Codex**: Codex installed (via npm: `@openai/codex`) with ChatGPT account or API key
+- Git installed
 
 ---
 
@@ -112,15 +53,17 @@ brew install --cask stravu-crystal
 
 ### Prerequisites
 
+- Node.js 20+
+- pnpm
+- **Windows**: Visual Studio 2022 Build Tools
 - **macOS/Linux**: Xcode Command Line Tools or build-essential
-- **Windows**: Visual Studio 2022 with Spectre-mitigated libraries ([see detailed instructions](docs/troubleshooting/SETUP_TROUBLESHOOTING.md#windows-build-requirements))
 
 ### Build Steps
 
 ```bash
 # Clone the repository
-git clone https://github.com/stravu/crystal.git
-cd crystal
+git clone https://github.com/parsakhaz/foozol.git
+cd foozol
 
 # One-time setup
 pnpm run setup
@@ -132,11 +75,11 @@ pnpm run electron-dev
 ### Building for Production
 
 ```bash
+# Build for Windows (x64 + arm64)
+pnpm build:win
+
 # Build for macOS
 pnpm build:mac
-
-# Build for Windows
-pnpm build:win
 
 # Build for Linux
 pnpm build:linux
@@ -144,70 +87,20 @@ pnpm build:linux
 
 ---
 
-## 🤝 Contributing
+## Documentation
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+For a full project overview, see [CLAUDE.md](CLAUDE.md). Additional documentation can be found in the [docs](./docs) directory.
 
-### Developing Crystal with Crystal
+## License
 
-If you're using Crystal to develop Crystal itself, you need to use a separate data directory to avoid conflicts with your main Crystal instance:
-
-```bash
-# Set the run script in your Crystal project settings to:
-pnpm run setup && pnpm run build:main && CRYSTAL_DIR=~/.crystal_test pnpm electron-dev
-```
-
-This ensures:
-- Your development Crystal instance uses `~/.crystal_test` for its data
-- Your main Crystal instance continues using `~/.crystal` 
-- Worktrees won't conflict between the two instances
-- You can safely test changes without affecting your primary Crystal setup
-
-### Using with Third-Party Deployments
-
-To use Crystal with cloud providers or via corporate infrastructure, you should create a [settings](https://docs.anthropic.com/en/docs/claude-code/settings) file with `ENV` values to correctly connect to the provider.
-
-For example, here is a minimal configuration to use Amazon Bedrock via an AWS Profile:
-
-```json5
-{
-  "env": {
-    "CLAUDE_CODE_USE_BEDROCK": "1",
-    "AWS_REGION": "us-east-2", // Replace with your AWS region
-    "AWS_PROFILE": "my-aws-profile" // Replace with your profile
-  },
-}
-```
-
-Check the [deployment documentation](https://docs.anthropic.com/en/docs/claude-code/third-party-integrations) for more information on getting setup with your particular deployment.
-
----
-
-## Additional Documentation
-
-For a full project overview, see [CLAUDE.md](CLAUDE.md). Additional diagrams, database schema details, release instructions, and license notes can be found in the [docs](./docs) directory.
-
-## 📄 License
-
-Crystal is open source software licensed under the [MIT License](LICENSE).
-
-### Third-Party Licenses
-
-Crystal includes third-party software components. All third-party licenses are documented in the [NOTICES](NOTICES) file. This file is automatically generated and kept up-to-date with our dependencies.
-
-To regenerate the NOTICES file after updating dependencies:
-```bash
-pnpm run generate-notices
-```
+foozol is open source software licensed under the [MIT License](LICENSE).
 
 ## Disclaimer
 
-Crystal is an independent project created by [Stravu](https://stravu.com/?utm_source=Crystal&utm_medium=OS&utm_campaign=Crystal&utm_id=1). Claude™ is a trademark of Anthropic, PBC. Codex™ is a trademark of OpenAI, Inc. Crystal is not affiliated with, endorsed by, or sponsored by Anthropic or OpenAI. This tool is designed to work with Claude Code and Codex, which must be installed separately.
+Claude™ is a trademark of Anthropic, PBC. Codex™ is a trademark of OpenAI, Inc. foozol is not affiliated with, endorsed by, or sponsored by Anthropic or OpenAI.
 
 ---
 
 <div align="center">
-  <img src="frontend/public/stravu-logo.png" alt="Stravu Logo" width="80" height="80">
-  <br>
-  Made with ❤️ by <a href="https://stravu.com/?utm_source=Crystal&utm_medium=OS&utm_campaign=Crystal&utm_id=1">Stravu</a>
+  By Parsa Khazaeepoul
 </div>
