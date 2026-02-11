@@ -122,23 +122,26 @@ export const PanelTabBar: React.FC<PanelTabBarProps> = memo(({
   const availablePanelTypes = (Object.keys(PANEL_CAPABILITIES) as ToolPanelType[])
     .filter(type => {
       const capabilities = PANEL_CAPABILITIES[type];
-      
+
       // Filter based on context
       if (context === 'project' && !capabilities.canAppearInProjects) return false;
       if (context === 'worktree' && !capabilities.canAppearInWorktrees) return false;
-      
+
       // Exclude permanent panels
       if (capabilities.permanent) return false;
-      
+
       // Exclude logs panel - it's only created automatically when running scripts
       if (type === 'logs') return false;
-      
+
+      // Temporarily hide claude/codex panels - use Terminal (Claude) and Terminal (Codex) instead
+      if (type === 'claude' || type === 'codex') return false;
+
       // Enforce singleton panels
       if (capabilities.singleton) {
         // Check if a panel of this type already exists
         return !panels.some(p => p.type === type);
       }
-      
+
       return true;
     });
   
