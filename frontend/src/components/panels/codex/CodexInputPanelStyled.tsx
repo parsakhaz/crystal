@@ -111,6 +111,19 @@ export const CodexInputPanelStyled: React.FC<CodexInputPanelStyledProps> = memo(
     loadSettings();
   }, [panelId]);
 
+  // Check for pending input from project creation
+  useEffect(() => {
+    if (panelId) {
+      const pendingKey = `pending-panel-input-${panelId}`;
+      const pendingInput = localStorage.getItem(pendingKey);
+
+      if (pendingInput) {
+        setInput(pendingInput);
+        localStorage.removeItem(pendingKey);
+      }
+    }
+  }, [panelId, setInput]);
+
   // Auto-focus textarea when panel becomes active or on initial mount
   const prevIsActiveRef = useRef<boolean | null>(null); // null indicates first render
   useEffect(() => {

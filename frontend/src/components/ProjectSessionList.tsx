@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronRight, Plus, GitBranch, MoreHorizontal, Home, Archive, ArchiveRestore, Pencil, Play, Trash2, Settings as SettingsIcon, FolderPlus, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, GitBranch, MoreHorizontal, Home, Archive, ArchiveRestore, Pencil, Play, Trash2, Settings as SettingsIcon, FolderPlus, Loader2, Brain, Code2 } from 'lucide-react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useNavigationStore } from '../stores/navigationStore';
 import { useHotkeyStore } from '../stores/hotkeyStore';
@@ -11,9 +11,28 @@ import { Button } from './ui/Button';
 import { EnhancedInput } from './ui/EnhancedInput';
 import { FieldWithTooltip } from './ui/FieldWithTooltip';
 import { Card } from './ui/Card';
+import { TogglePillImproved } from './ui/TogglePillImproved';
 import { API } from '../utils/api';
 import type { Session, GitStatus } from '../types/session';
 import type { Project, CreateProjectRequest } from '../types/project';
+
+const RUN_SCRIPT_PROMPT = `I'm using foozol (Crystal), a tool that manages multiple AI coding sessions using git worktrees. Each session runs in its own worktree directory.
+
+Please analyze this project and create a **crystal-run.sh** script. This script needs to:
+
+1. **Work from any git worktree** - Detect if running from a worktree subdirectory and resolve paths correctly. The main repo might be at ../.. or similar relative to the worktree.
+
+2. **Dynamic port allocation** - Generate a unique port based on the current directory path (e.g., hash the path and use: base_port + (hash % 1000)). This allows multiple worktrees to run the same project simultaneously without port conflicts.
+
+3. **Find dependencies intelligently** - For Node.js projects, check for node_modules locally first, then in parent directories. For Python, check for venv/virtualenv. Handle monorepo structures.
+
+4. **Safe process management** - Before starting, check if something is already running on the calculated port and offer to kill it or pick a different port.
+
+5. **Auto-detect project type** - Look for package.json, requirements.txt, Cargo.toml, go.mod, etc. and use the appropriate start command.
+
+6. **Clear output** - Print the URL/port being used so the user knows where to access the running app.
+
+First, analyze the project structure to understand what type of project this is, then create the crystal-run.sh script with clear comments.`;
 
 interface ProjectSessionListProps {
   sessionSortAscending: boolean;
@@ -30,6 +49,10 @@ export function ProjectSessionList({ sessionSortAscending }: ProjectSessionListP
   const [newProject, setNewProject] = useState<CreateProjectRequest>({ name: '', path: '', buildScript: '', runScript: '' });
   const [detectedBranch, setDetectedBranch] = useState<string | null>(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+
+  // AI-assisted run script state
+  const [generateRunScript, setGenerateRunScript] = useState(true);
+  const [selectedAiTool, setSelectedAiTool] = useState<'claude' | 'codex'>('claude');
 
   // Inline rename state
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -218,16 +241,42 @@ export function ProjectSessionList({ sessionSortAscending }: ProjectSessionListP
       return;
     }
     try {
-      const response = await API.projects.create({ ...newProject, active: false });
-      if (!response.success) {
+      // Set run script path if AI generation is enabled
+      const projectToCreate = {
+        ...newProject,
+        active: false,
+        runScript: generateRunScript ? './crystal-run.sh' : newProject.runScript
+      };
+
+      const response = await API.projects.create(projectToCreate);
+      if (!response.success || !response.data) {
         console.error('Failed to create project:', response.error);
         return;
       }
+
+      const newProjectId = response.data.id;
+
+      // Store pending AI prompt if enabled
+      if (generateRunScript) {
+        localStorage.setItem(`pending-ai-prompt-${newProjectId}`, JSON.stringify({
+          aiTool: selectedAiTool,
+          prompt: RUN_SCRIPT_PROMPT
+        }));
+      }
+
+      // Reset form state
       setShowAddProjectDialog(false);
       setNewProject({ name: '', path: '', buildScript: '', runScript: '' });
       setDetectedBranch(null);
       setShowValidationErrors(false);
+      setGenerateRunScript(true);
+      setSelectedAiTool('claude');
+
+      // Refresh projects list
       loadProjects();
+
+      // Navigate to the new project
+      navigateToProject(newProjectId);
     } catch (e) {
       console.error('Failed to create project:', e);
     }
@@ -396,6 +445,8 @@ export function ProjectSessionList({ sessionSortAscending }: ProjectSessionListP
           setNewProject({ name: '', path: '', buildScript: '', runScript: '' });
           setDetectedBranch(null);
           setShowValidationErrors(false);
+          setGenerateRunScript(true);
+          setSelectedAiTool('claude');
         }}
         size="lg"
       >
@@ -473,6 +524,47 @@ export function ProjectSessionList({ sessionSortAscending }: ProjectSessionListP
                 </Card>
               </FieldWithTooltip>
             )}
+
+            {/* AI-Assisted Run Script */}
+            <div className="pt-4 border-t border-border-primary">
+              <FieldWithTooltip
+                label="Run Script Setup"
+                tooltip="Let AI analyze your project and create a crystal-run.sh script that works with git worktrees and handles dynamic port allocation."
+              >
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={generateRunScript}
+                      onChange={(e) => setGenerateRunScript(e.target.checked)}
+                      className="w-4 h-4 rounded border-border-primary text-interactive focus:ring-interactive"
+                    />
+                    <span className="text-sm text-text-primary">Help me create a run script</span>
+                  </label>
+
+                  {generateRunScript && (
+                    <div className="ml-6 flex items-center gap-2">
+                      <TogglePillImproved
+                        checked={selectedAiTool === 'claude'}
+                        onCheckedChange={() => setSelectedAiTool('claude')}
+                        icon={<Brain className="w-3 h-3" />}
+                        size="sm"
+                      >
+                        Claude
+                      </TogglePillImproved>
+                      <TogglePillImproved
+                        checked={selectedAiTool === 'codex'}
+                        onCheckedChange={() => setSelectedAiTool('codex')}
+                        icon={<Code2 className="w-3 h-3" />}
+                        size="sm"
+                      >
+                        Codex
+                      </TogglePillImproved>
+                    </div>
+                  )}
+                </div>
+              </FieldWithTooltip>
+            </div>
           </div>
         </ModalBody>
         <ModalFooter>
@@ -482,6 +574,8 @@ export function ProjectSessionList({ sessionSortAscending }: ProjectSessionListP
               setNewProject({ name: '', path: '', buildScript: '', runScript: '' });
               setDetectedBranch(null);
               setShowValidationErrors(false);
+              setGenerateRunScript(true);
+              setSelectedAiTool('claude');
             }}
             variant="ghost"
             size="md"
