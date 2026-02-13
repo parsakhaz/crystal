@@ -859,7 +859,19 @@ Co-Authored-By: foozol <foozol@stravu.com>` : commitMessage;
 
   async gitPush(worktreePath: string): Promise<{ output: string }> {
     try {
-      const { stdout, stderr } = await execWithShellPath('git push', { cwd: worktreePath });
+      // Check if branch has an upstream configured
+      let hasUpstream = false;
+      try {
+        await execWithShellPath('git rev-parse --abbrev-ref --symbolic-full-name @{u}', { cwd: worktreePath });
+        hasUpstream = true;
+      } catch {
+        // No upstream configured
+        hasUpstream = false;
+      }
+
+      // Use -u to set upstream on first push, otherwise regular push
+      const pushCommand = hasUpstream ? 'git push' : 'git push -u origin HEAD';
+      const { stdout, stderr } = await execWithShellPath(pushCommand, { cwd: worktreePath });
       const output = stdout || stderr || 'Push completed successfully';
 
       return { output };
