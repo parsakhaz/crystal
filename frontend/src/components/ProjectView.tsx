@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { API } from '../utils/api';
 import { useSessionStore } from '../stores/sessionStore';
+import { useErrorStore } from '../stores/errorStore';
 import { Session } from '../types/session';
 import { PanelTabBar } from './panels/PanelTabBar';
 import { PanelContainer } from './panels/PanelContainer';
@@ -29,7 +30,9 @@ export const ProjectView: React.FC<ProjectViewProps> = ({
   const [mainRepoSessionId, setMainRepoSessionId] = useState<string | null>(null);
   const [mainRepoSession, setMainRepoSession] = useState<Session | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
-  
+  const [pendingAiPrompt, setPendingAiPrompt] = useState<{ aiTool: 'claude' | 'codex'; prompt: string } | null>(null);
+  const { showError } = useErrorStore();
+
   // Panel store state and actions
   const {
     panels,
@@ -94,7 +97,24 @@ export const ProjectView: React.FC<ProjectViewProps> = ({
           });
           panelsCreated = true;
         }
-        
+
+        // Create explorer panel if it doesn't exist
+        const explorerPanel = loadedPanels.find(p => p.type === 'explorer');
+        if (!explorerPanel) {
+          try {
+            console.log('[ProjectView] Creating explorer panel for project');
+            await panelApi.createPanel({
+              sessionId: mainRepoSessionId,
+              type: 'explorer',
+              title: 'Explorer',
+              metadata: {}
+            });
+            panelsCreated = true;
+          } catch (error) {
+            console.error('[ProjectView] Failed to create explorer panel:', error);
+          }
+        }
+
         // Reload panels if any were created
         const finalPanels = panelsCreated 
           ? await panelApi.loadPanelsForSession(mainRepoSessionId)
@@ -104,12 +124,12 @@ export const ProjectView: React.FC<ProjectViewProps> = ({
         
         // Determine which panel should be active
         const activePanel = await panelApi.getActivePanel(mainRepoSessionId);
-        const setupPanel = finalPanels.find(p => p.type === 'setup-tasks');
+        const explorerPanelToActivate = finalPanels.find(p => p.type === 'explorer');
         const dashPanel = finalPanels.find(p => p.type === 'dashboard');
-        
+
         if (!activePanel) {
-          // No active panel - prioritize setup-tasks if it exists, otherwise dashboard
-          const panelToActivate = setupPanel || dashPanel;
+          // No active panel - prioritize explorer if it exists, otherwise dashboard
+          const panelToActivate = explorerPanelToActivate || dashPanel;
           if (panelToActivate) {
             setActivePanelInStore(mainRepoSessionId, panelToActivate.id);
             await panelApi.setActivePanel(mainRepoSessionId, panelToActivate.id);
@@ -280,27 +300,99 @@ export const ProjectView: React.FC<ProjectViewProps> = ({
   // Listen for panel updates from the backend
   useEffect(() => {
     if (!mainRepoSessionId) return;
-    
+
     // Handle panel creation events (for auto-created panels like logs)
     const handlePanelCreated = (panel: ToolPanel) => {
       console.log('[ProjectView] Received panel:created event:', panel);
-      
+
       // Only add if it's for the current session
       if (panel.sessionId === mainRepoSessionId) {
         // The store's addPanel now checks for duplicates, so we can safely call it
         addPanel(panel);
       }
     };
-    
+
     // Listen for panel events
     const unsubscribeCreated = window.electronAPI?.events?.onPanelCreated?.(handlePanelCreated);
-    
+
     // Cleanup
     return () => {
       unsubscribeCreated?.();
     };
   }, [mainRepoSessionId, addPanel]);
-  
+
+  // Check for pending AI prompt from project creation
+  useEffect(() => {
+    if (mainRepoSessionId && !isLoadingSession) {
+      const pendingKey = `pending-ai-prompt-${projectId}`;
+      const pendingData = localStorage.getItem(pendingKey);
+
+      if (pendingData) {
+        try {
+          const parsed = JSON.parse(pendingData) as unknown;
+          // Validate the parsed data
+          if (parsed && typeof parsed === 'object' &&
+              'aiTool' in parsed && 'prompt' in parsed &&
+              (parsed.aiTool === 'claude' || parsed.aiTool === 'codex') &&
+              typeof parsed.prompt === 'string') {
+            setPendingAiPrompt(parsed as { aiTool: 'claude' | 'codex'; prompt: string });
+          }
+          localStorage.removeItem(pendingKey);
+        } catch (e) {
+          console.error('Failed to parse pending AI prompt:', e);
+          localStorage.removeItem(pendingKey);
+        }
+      }
+    }
+  }, [mainRepoSessionId, projectId, isLoadingSession]);
+
+  // Cleanup pending prompt on unmount
+  useEffect(() => {
+    return () => {
+      // If we unmount before processing, clean up the pending prompt
+      const pendingKey = `pending-ai-prompt-${projectId}`;
+      localStorage.removeItem(pendingKey);
+    };
+  }, [projectId]);
+
+  // Create AI panel when pending prompt is set
+  useEffect(() => {
+    if (pendingAiPrompt && mainRepoSessionId && !isLoadingSession) {
+      const createAiPanel = async () => {
+        try {
+          // Create new AI panel (always create new, don't reuse)
+          const newPanel = await panelApi.createPanel({
+            sessionId: mainRepoSessionId,
+            type: pendingAiPrompt.aiTool,
+            title: pendingAiPrompt.aiTool === 'claude' ? 'Claude' : 'Codex'
+          });
+
+          // Add panel to store
+          addPanel(newPanel);
+
+          // Activate the panel
+          setActivePanelInStore(mainRepoSessionId, newPanel.id);
+          await panelApi.setActivePanel(mainRepoSessionId, newPanel.id);
+
+          // Store the pending input for the panel to pick up
+          localStorage.setItem(`pending-panel-input-${newPanel.id}`, pendingAiPrompt.prompt);
+
+          // Clear the pending prompt
+          setPendingAiPrompt(null);
+        } catch (error) {
+          console.error('Failed to create AI panel:', error);
+          showError({
+            title: 'Failed to Create AI Panel',
+            error: 'Could not create AI panel for run script generation. You can manually add a Claude or Codex panel.'
+          });
+          setPendingAiPrompt(null);
+        }
+      };
+
+      createAiPanel();
+    }
+  }, [pendingAiPrompt, mainRepoSessionId, isLoadingSession, addPanel, setActivePanelInStore, showError]);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-bg-primary">
       {/* SINGLE SessionProvider wraps everything */}

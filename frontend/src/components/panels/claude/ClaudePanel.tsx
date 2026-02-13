@@ -86,6 +86,20 @@ export const ClaudePanel: React.FC<AIPanelProps> = React.memo(({ panel, isActive
     }
   }, [devModeEnabled, activeView]);
 
+  // Check for pending input from project creation
+  useEffect(() => {
+    if (panel?.id) {
+      const pendingKey = `pending-panel-input-${panel.id}`;
+      const pendingInput = localStorage.getItem(pendingKey);
+
+      if (pendingInput) {
+        hook.setInput(pendingInput);
+        localStorage.removeItem(pendingKey);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setInput is stable from useState
+  }, [panel?.id]);
+
   if (!activeSession) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-secondary">
