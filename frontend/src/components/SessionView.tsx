@@ -504,9 +504,9 @@ export const SessionView = memo(() => {
           hook.setDialogType('commit');
           hook.setShowCommitMessageDialog(true);
         },
-        disabled: hook.isMerging || activeSession.status === 'running' || activeSession.status === 'initializing' || !activeSession.gitStatus?.hasUncommittedChanges,
+        disabled: hook.isMerging || activeSession.status === 'running' || activeSession.status === 'initializing' || (!activeSession.gitStatus?.hasUncommittedChanges && !activeSession.gitStatus?.hasUntrackedFiles),
         variant: 'default' as const,
-        description: activeSession.gitStatus?.hasUncommittedChanges ? 'Stage all changes and commit' : 'No uncommitted changes'
+        description: (activeSession.gitStatus?.hasUncommittedChanges || activeSession.gitStatus?.hasUntrackedFiles) ? 'Stage all changes and commit' : 'No changes to commit'
       },
       // Push action
       {
